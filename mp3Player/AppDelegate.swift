@@ -28,7 +28,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         print("Handling shortcut")
         
         var succeeded = false
-        if( shortcutItem.type == "com.saudsoft.mp3Player2.PlaySound" )
+        if( shortcutItem.type == "com.saudsoft.quraan001.PlaySound" )
         {
             // Add your code here
             print("- Handling \(shortcutItem.type)")
