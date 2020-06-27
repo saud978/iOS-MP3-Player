@@ -10,53 +10,22 @@ import UIKit
 import AVFoundation
 import MediaPlayer
 
-@available(iOS 9.0, *)
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
     var shortcutItem: UIApplicationShortcutItem?
     
-    func application(_ application: UIApplication, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
-        
-        print("Application performActionForShortcutItem")
-        
-        completionHandler( handleShortcut(shortcutItem) )
-    }
-    
-    func handleShortcut( _ shortcutItem:UIApplicationShortcutItem ) -> Bool {
-        print("Handling shortcut")
-        
-        var succeeded = false
-        if( shortcutItem.type == "com.saudsoft.quraan001.PlaySound" )
-        {
-            // Add your code here
-            print("- Handling \(shortcutItem.type)")
-
-            let mainViewController = self.window!.rootViewController as! ViewController
-
-            mainViewController.shortCutPlay()
-            
-            succeeded = true
-            
-        }
-        return succeeded
-    }
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        var performShortcutDelegate = true
         
-        if let shortcutItem = launchOptions?[UIApplication.LaunchOptionsKey.shortcutItem] as? UIApplicationShortcutItem {
-            
-            print("Application launched via shortcut")
-            self.shortcutItem = shortcutItem
-            
-            performShortcutDelegate = false
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(AVAudioSession.Category.playback, mode: AVAudioSession.Mode.default)
+        } catch let error as NSError {
+            print("Setting category to AVAudioSessionCategoryPlayback failed: \(error)")
         }
-        
-        
-        return performShortcutDelegate
+        // Other project setup
+        return true
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -75,40 +44,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-        print("Application did become active")
-        
-//        guard let shortcut = shortcutItem else { return }
-        
-        print("- Shortcut property has been set")
-        
-//        handleShortcut(shortcut)
-        
-        self.shortcutItem = nil
     }
-
-//    override func remoteControlReceived(with event: UIEvent?) {
-//        guard let event = event else {
-//            print("no event\n")
-//            return
-//        }
-//        guard event.type == UIEvent.EventType.remoteControl else {
-//            print("received other event type\n")
-//            return
-//        }
-//        switch event.subtype {
-//        case UIEvent.EventSubtype.remoteControlPlay:
-//            print("received remote play\n")
-//            //ViewController.sharedInstance.play()
-//        case UIEvent.EventSubtype.remoteControlPause:
-//            print("received remote pause\n")
-//            ViewController.sharedInstance.pausePlayer()
-//        case UIEvent.EventSubtype.remoteControlTogglePlayPause:
-//            print("received toggle\n")
-//            //ViewController.sharedInstance.toggle()
-//        default:
-//            print("received \(event.subtype) which we did not process\n")
-//        }
-//    }
     
     func applicationWillTerminate(_ application: UIApplication) {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.

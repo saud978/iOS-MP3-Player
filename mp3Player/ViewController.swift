@@ -30,6 +30,21 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
     var opaques = [String:Any]()
     var which = 0 // 0 means use target-action, 1 means use handler
     
+    
+    @IBAction func forward15(_ sender: Any) {
+        if quraan.currentTime < (quraan.duration - 15) {
+            quraan.currentTime += 15
+        }
+    }
+    
+    @IBAction func backward15(_ sender: Any) {
+        if quraan.currentTime > 15 {
+            quraan.currentTime -= 15
+        } else {
+            quraan.currentTime = 0
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -40,77 +55,40 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
         sliderTimer.setThumbImage(UIImage(named: "ThumbImage2.png"), for: .normal)
         sliderTimer.setThumbImage(UIImage(named: "ThumbImageSelected.png"), for: .highlighted)
         
-        
-        let playerItem = AVPlayerItem(url: Bundle.main.url(forResource: "file001", withExtension: "mp3")!)
-        let metadataList = playerItem.asset.metadata
-        //print(metadataList)
-        var trackLabel = ""
-        var artistLabel = ""
-        var artistImage: UIImage = UIImage()
-        
-        for item in metadataList {
-            
-            guard let key = convertFromOptionalAVMetadataKey(item.commonKey), let value = item.value else {
-                continue
-            }
-            
-            switch key {
-            case "title" : trackLabel = value as! String
-            case "artist": artistLabel = value as! String
-            case "artwork" where value is Data : artistImage = UIImage(data: value as! Data)!
-            default:
-                continue
-            }
-        }
-        
-        let albumArt = MPMediaItemArtwork(image: artistImage)
-        let roundedImage = artistImage.rounded(with: .white, width: 3)
-        
-        albumArtImage.image = roundedImage
-        
-        let mpic = MPNowPlayingInfoCenter.default()
-        mpic.nowPlayingInfo = [
-            MPMediaItemPropertyTitle:trackLabel,
-            MPMediaItemPropertyArtist:artistLabel,
-            MPMediaItemPropertyArtwork:albumArt
-        ]
-        
-        // https://github.com/mattneub/Programming-iOS-Book-Examples/tree/master/bk2ch14p643ducking/ch27p912ducking
+        playMP3()
         
         durationLabel.text = "00:00:00"
         sliderTimer.value = 0
-        
-        playMP3()
+
     }
     
     func prepareRemoteControlAction() {
-        let scc = MPRemoteCommandCenter.shared()
+        let mp3Player = MPRemoteCommandCenter.shared()
+        
         switch which {
         case 0:
-            scc.togglePlayPauseCommand.addTarget(self, action: #selector(doPlayPause))
+            mp3Player.togglePlayPauseCommand.addTarget(self, action: #selector(doPlayPause))
             
-            scc.playCommand.addTarget(self, action:#selector(doPlay))
-            scc.pauseCommand.addTarget(self, action:#selector(doPause))
-            // fun fun fun
-            //            scc.likeCommand.addTarget(self, action:#selector(doLike))
-        //            scc.likeCommand.localizedTitle = "Fantastic"
+            mp3Player.playCommand.addTarget(self, action:#selector(doPlay))
+            mp3Player.pauseCommand.addTarget(self, action:#selector(doPause))
+
         case 1:
-            opaques["playPause"] = scc.togglePlayPauseCommand.addTarget {
+            opaques["playPause"] = mp3Player.togglePlayPauseCommand.addTarget {
                 [unowned self] _ in
-                let p = self.quraan
-                if p.isPlaying { p.pause() } else { p.play() }
+                let player = self.quraan
+                if player.isPlaying { player.pause() } else { player.play() }
                 return .success
             }
-            opaques["play"] = scc.playCommand.addTarget {
+            opaques["play"] = mp3Player.playCommand.addTarget {
                 [unowned self] _ in
-                let p = self.quraan
-                p.play()
+                let player = self.quraan
+                player.play()
                 return .success
             }
-            opaques["pause"] = scc.pauseCommand.addTarget {
+            opaques["pause"] = mp3Player.pauseCommand.addTarget {
                 [unowned self] _ in
-                let p = self.quraan
-                p.pause()
+                let player = self.quraan
+                player.pause()
                 return .success
             }
         default:break
@@ -175,7 +153,7 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
     
     func playMP3() {
         updater = CADisplayLink(target: self, selector: #selector(ViewController.trackAudio))
-        updater.frameInterval = 1
+        updater.preferredFramesPerSecond = 1
         updater.add(to: RunLoop.current, forMode: RunLoop.Mode.common)
         
         prepareAudio("file001")
@@ -185,6 +163,47 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
         
         sliderTimer.minimumValue = 0
         sliderTimer.maximumValue = Float(quraan.duration)
+        
+        let playerItem = AVPlayerItem(url: Bundle.main.url(forResource: "file001", withExtension: "mp3")!)
+        let metadataList = playerItem.asset.metadata
+        
+        var trackLabel = ""
+        var artistLabel = ""
+        var artistImage: UIImage = UIImage()
+        
+        for item in metadataList {
+            
+            guard let key = convertFromOptionalAVMetadataKey(item.commonKey), let value = item.value else {
+                continue
+            }
+            
+            switch key {
+            case "title" : trackLabel = value as! String
+            case "artist": artistLabel = value as! String
+            case "artwork" where value is Data : artistImage = UIImage(data: value as! Data)!
+            default:
+                continue
+            }
+        }
+        
+        let albumArt = MPMediaItemArtwork(boundsSize: artistImage.size) { (cgSize) -> UIImage in
+            return artistImage
+        }
+        
+        let roundedImage = artistImage.rounded(with: .white, width: 3)
+        
+        albumArtImage.image = roundedImage
+        
+        let mpic = MPNowPlayingInfoCenter.default()
+        mpic.nowPlayingInfo = [
+            MPMediaItemPropertyTitle: trackLabel,
+            MPMediaItemPropertyArtist: artistLabel,
+            MPMediaItemPropertyArtwork: albumArt,
+            MPMediaItemPropertyPlaybackDuration: quraan.duration
+        ]
+        print(quraan.duration)
+        
+        // https://github.com/mattneub/Programming-iOS-Book-Examples/tree/master/bk2ch14p643ducking/ch27p912ducking
     }
     
     func setNumberOfRepeats() {
@@ -195,15 +214,7 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
         //        }
         quraan.numberOfLoops = numberOfRepeat // play indefinitely
     }
-    
-    
-    
-    func shortCutPlay() {
-        // Background the app
-        playButton(self)
-        UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
-    }
-    
+        
     func pausePlayer() {
         quraan.pause()
     }
@@ -211,14 +222,11 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
     func prepareAudio(_ fileName: String) {
         do {
             // make audio paly in background
-            if #available(iOS 10.0, *) {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-                print("Playback OK")
-                try AVAudioSession.sharedInstance().setActive(true)
-                print("Session is Active")
-            } else {
-                
-            }
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            print("Playback OK")
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("Session is Active")
+            
         } catch {
             print(error)
         }
@@ -227,8 +235,12 @@ class ViewController: UIViewController, AVAudioPlayerDelegate
         
         let url:URL = Bundle.main.url(forResource: fileName, withExtension: "mp3")!
         
-        do { quraan = try AVAudioPlayer(contentsOf: url, fileTypeHint: nil) }
-        catch let error as NSError { print(error.description) }
+        do {
+            quraan = try AVAudioPlayer(contentsOf: url, fileTypeHint: nil)
+        }
+        catch let error as NSError {
+            print(error.description)
+        }
     }
     
     @IBAction func fastForward(_ sender: AnyObject)
